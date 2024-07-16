@@ -1,0 +1,16 @@
+{
+  "service": "SDP",
+  "type": "personal",
+  "widgets": [
+    {
+      "name": "DataDog",
+      "description": "DataDog integration with ServiceDesk Plus Cloud",
+      "path_url": "/app/widget/widget.html",
+      "show_widget_header_in_dashboard": true,
+      "icons": {
+        "30x30": "/app/img/DD_logo.png"
+      },
+      "locations": ["request.detail.rightpanel", "configuration"]
+    }
+  ]
+}

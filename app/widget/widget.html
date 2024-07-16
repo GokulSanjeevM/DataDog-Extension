@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>DataDog</title>
+	<link rel="icon" type="image/x-icon" href="/app/img/DD_logo.png">
+	<link rel="stylesheet" href="./widget.css">
+	<script src="https://sdpondemand.manageengine.com/scripts/v1/widget/sdpclientsdk.min.js"
+		type="text/javascript"></script>
+</head>
+
+<body onload="init()">
+	<div id="loader"></div>
+	<div id="myDiv" class="animate-bottom" style="display: none;">
+		<div class="container">
+			<div class="table">
+				<table>
+					<thead style="position: sticky;top: 0;background-color: #fff;z-index: 1;">
+						<tr>
+							<th>S.No</th>
+							<th>Configured Monitors</th>
+						</tr>
+					</thead>
+					<tbody id="tableBody"></tbody>
+				</table>
+			</div>
+			<div class="form">
+				<form>
+					<div class="WidgetBox">
+						<div style="margin-bottom: 10px">
+							<label for="title">Monitor Lists:</label>
+							<div id="multipleSelectContainer">
+								<div class="icons">
+									<div id="selectedItems" class="select-box">
+										<i class="gg-search"></i>
+										<input type="search" id="inputField" placeholder="Select Monitor">
+									</div>
+									<div class="downicon" id="dropdownIcon">
+										<span class="chevron-down"></span>
+									</div>
+								</div>
+								<div id="dropdown" class="dropdown"></div>
+							</div>
+							<div id="selectedItemsContainer"></div>
+						</div>
+						<div class="form-button">
+							<button type="submit" id="createMonitor" onclick="onClickCreateReq(event)">
+								Submit
+							</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<script src="./widget.js"></script>
+	<script>
+		function showPage() {
+			document.getElementById("loader").style.display = "none";
+			document.getElementById("myDiv").style.display = "block";
+		}
+
+		window.onload = function init() {
+			SDP.init().then(function (initial_data) {
+				resize();
+				return SDP.invokeUrl({
+					url: "https://api.us5.datadoghq.com/api/v1/monitor",
+					method: "get",
+					headers: {
+						"Accept": "application/json"
+					},
+					connectionLinkName: "datadog_test02"
+				})
+					.then(res => {
+						const data = res.response;
+						populateDropdown(data);
+						showPage();
+					})
+					.catch(err => {
+						createAlert("Error", "Failed to fetch data. Please try again later.");
+					});
+			})
+		}
+
+		function resize() {
+			return SDP.resizeWidget({
+				width: 888,
+				height: 400
+			}).then(function (response) {
+				console.log(response);
+			}).catch(function (response) {
+				console.log(response);
+			});
+		}
+	</script>
+</body>
+
+</html>
