@@ -14,11 +14,6 @@ function createAlert(title, message) {
   });
 }
 
-const bodyData = JSON.stringify({
-  name: "Webhook",
-  url: "https://sdpondemand.manageengine.com/app/testing1/executefunction/DD_Webhook?zapikey=1003.c8b146e1ab4ae0becfc0217f031ede30.d877980f7b9b297646bf83860e61ef50",
-});
-
 function onClickCreateReq(event) {
   event.preventDefault();
 
@@ -30,28 +25,58 @@ function onClickCreateReq(event) {
     createAlert("Error", "Please select at least one monitor.");
     return;
   }
-
-  SDP.invokeUrl({
-    url: "https://api.us5.datadoghq.com/api/v1/integration/webhooks/configuration/webhooks",
-    method: "post",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    payload: bodyData,
-    connectionLinkName: "datadog_test02",
+ SDP.get({
+    url: "/api/v3/customfunctions",
+    input_data: {
+      "list_info": {
+        "search_criteria": {
+          "field": "function_type",
+          "condition": "EQ",
+          "value": "callback",
+          "children": [
+            {
+              "logical_operator": "and",
+              "field": "api_name",
+              "condition": "EQ",
+              "value": "DataDog",
+            },
+          ],
+        },
+      },
+    }
   })
-    .then((res) => {
-      createAlert("Success", "Webhook created successfully");
-      selectedMonitors.forEach((monitor) => {
-        webConfig(monitor.id, monitor.name);
-      });
-      selectedItemsContainer.innerHTML = "";
-      inputField.value = "";
+    .then((response) => {
+        const callbackUrl = response.customfunctions[0].callback_url;
+        console.log("Callback URL:", callbackUrl);
+
+        SDP.invokeUrl({
+          url: "https://api.us5.datadoghq.com/api/v1/integration/webhooks/configuration/webhooks",
+          method: "post",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          payload: JSON.stringify({
+            name: "Webhook",
+            url: callbackUrl,
+          }),
+          connectionLinkName: "datadog",
+        })
+          .then((res) => {
+            createAlert("Success", "Webhook created successfully");
+            selectedMonitors.forEach((monitor) => {
+              webConfig(monitor.id, monitor.name);
+            });
+            selectedItemsContainer.innerHTML = "";
+            inputField.value = "";
+          })
+          .catch((err) => {
+            console.error("API Call Error:", err);
+            createAlert("Error", "Failed to create webhook. Please try again later.");
+          });
     })
     .catch((err) => {
       console.error("API Call Error:", err);
-      createAlert("Error", "Failed to create webhook. Please try again later.");
     });
 }
 
@@ -63,7 +88,7 @@ function webConfig(monitorId, monitorName) {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    connectionLinkName: "datadog_test02",
+    connectionLinkName: "datadog",
     payload: JSON.stringify({
       message: "@webhook-Webhook",
     }),
@@ -133,7 +158,7 @@ function fetchMonitorMessage(monitorId) {
     headers: {
       Accept: "application/json",
     },
-    connectionLinkName: "datadog_test02",
+    connectionLinkName: "datadog",
   })
     .then((res) => res.response.message)
     .catch((err) => {
