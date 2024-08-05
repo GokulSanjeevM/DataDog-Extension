@@ -47,7 +47,6 @@ function onClickCreateReq(event) {
   })
     .then((response) => {
         const callbackUrl = response.customfunctions[0].callback_url;
-        console.log("Callback URL:", callbackUrl);
 
         SDP.invokeUrl({
           url: "https://api.us5.datadoghq.com/api/v1/integration/webhooks/configuration/webhooks",
