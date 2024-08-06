@@ -89,7 +89,7 @@ function webConfig(monitorId, monitorName) {
     },
     connectionLinkName: "datadog",
     payload: JSON.stringify({
-      message: "@webhook-Webhook",
+      message: "@webhook-ServiceDeskPlusWebhook",
     }),
   })
     .then((res) => {
