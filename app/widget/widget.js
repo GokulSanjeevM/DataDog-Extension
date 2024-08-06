@@ -56,7 +56,7 @@ function onClickCreateReq(event) {
             "Content-Type": "application/json",
           },
           payload: JSON.stringify({
-            name: "Webhook",
+            name: "ServiceDeskPlusWebhook",
             url: callbackUrl,
           }),
           connectionLinkName: "datadog",
@@ -133,7 +133,7 @@ function populateDropdown(data) {
 
   data.forEach(async (item) => {
     const message = await fetchMonitorMessage(item.id);
-    if (message.includes("@webhook-Webhook")) {
+    if (message.includes("@webhook-ServiceDeskPlusWebhook")) {
       addMonitorToTable(item.name, tableIndex++);
     } else {
       const option = document.createElement("div");
