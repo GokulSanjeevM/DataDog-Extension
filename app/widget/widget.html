@@ -56,31 +56,56 @@
 	</div>
 	<script src="./widget.js"></script>
 	<script>
+
+		let apiUrl = '';
+		let domainUrl = '';
+
 		function showPage() {
 			document.getElementById("loader").style.display = "none";
 			document.getElementById("myDiv").style.display = "block";
 		}
 
-		window.onload = function init() {
+		window.onload = function init(extensionVariable) {
 			SDP.init().then(function (initial_data) {
 				resize();
-				return SDP.invokeUrl({
-					url: "https://api.us5.datadoghq.com/api/v1/monitor",
-					method: "get",
-					headers: {
-						"Accept": "application/json"
-					},
-					connectionLinkName: "datadog"
-				})
+
+				SDP.getVariables()
 					.then(res => {
-						const data = res.response;
-						populateDropdown(data);
-						showPage();
+						console.log("Variables Response:", res);
+
+						if (res.length >= 2) {
+							apiUrl = res[0].value;
+							domainUrl = res[1].value;
+							console.log("API URL: " + apiUrl);
+							console.log("Domain URL: " + domainUrl);
+						} else {
+							throw new Error("Insufficient data from getVariables");
+						}
+
+						return SDP.invokeUrl({
+							url: `https://${apiUrl}/api/v1/monitor`,
+							method: "get",
+							headers: {
+								"Accept": "application/json"
+							},
+							connectionLinkName: "demodog"
+						});
+					})
+					.then(res => {
+						if (res && res.response) {
+							const data = res.response;
+							console.log("API Response Data:", data);
+							populateDropdown(data);
+							showPage();
+						} else {
+							throw new Error("Invalid API response format.");
+						}
 					})
 					.catch(err => {
-						createAlert("Error", "Failed to fetch data. Please try again later.");
+						console.error("API Call or Variable Fetch Error:", err);
+						createAlert("Error", `Failed to connect with the external service: ${err.message}`);
 					});
-			})
+			});
 		}
 
 		function resize() {

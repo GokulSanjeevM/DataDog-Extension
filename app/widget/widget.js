@@ -25,69 +25,110 @@ function onClickCreateReq(event) {
     createAlert("Error", "Please select at least one monitor.");
     return;
   }
- SDP.get({
-    url: "/api/v3/customfunctions",
-    input_data: {
-      "list_info": {
-        "search_criteria": {
-          "field": "function_type",
-          "condition": "EQ",
-          "value": "callback",
-          "children": [
-            {
-              "logical_operator": "and",
-              "field": "api_name",
-              "condition": "EQ",
-              "value": "DataDog",
-            },
-          ],
-        },
-      },
-    }
-  })
-    .then((response) => {
-        const callbackUrl = response.customfunctions[0].callback_url;
 
-        SDP.invokeUrl({
-          url: "https://api.us5.datadoghq.com/api/v1/integration/webhooks/configuration/webhooks",
-          method: "post",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
+  createCustomVariable(apiUrl,domainUrl)
+    .then(() => {
+      return SDP.get({
+  url: "/api/v3/customfunctions",
+  input_data: {
+    list_info: {
+      search_criteria: {
+        field: "function_type",
+        condition: "EQ",
+        value: "callback",
+        children: [
+          {
+            logical_operator: "and",  
+            field: "api_name",
+            condition: "EQ",
+            value: "configure",
           },
-          payload: JSON.stringify({
-            name: "ServiceDeskPlusWebhook",
-            url: callbackUrl,
-          }),
-          connectionLinkName: "datadog",
-        })
-          .then((res) => {
-            createAlert("Success", "Webhook created successfully");
-            selectedMonitors.forEach((monitor) => {
-              webConfig(monitor.id, monitor.name);
-            });
-            selectedItemsContainer.innerHTML = "";
-            inputField.value = "";
-          })
-          .catch((err) => {
-            console.error("API Call Error:", err);
-            createAlert("Error", "Failed to create webhook. Please try again later.");
-          });
+        ],
+      },
+    },
+  },
+})
+    .then((response) => {
+      const callbackUrl = response.customfunctions[0].callback_url;
+      console.log("Callback URL: " + callbackUrl);
+
+      return SDP.invokeUrl({
+        url: `https://${apiUrl}/api/v1/integration/webhooks/configuration/webhooks`,
+        method: "post",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        payload: JSON.stringify({
+          name: "ServiceDeskPlusWebhook",
+          url: callbackUrl,
+           payload: JSON.stringify({ 
+            body: "$EVENT_MSG",
+            last_updated: "$LAST_UPDATED",
+            event_type: "$EVENT_TYPE",
+            title: "$EVENT_TITLE",
+            date: "$DATE",
+            org: {
+              id: "$ORG_ID",
+              name: "$ORG_NAME"
+            },
+            custom_payload: {
+              apiUrl: apiUrl, 
+              domainUrl: domainUrl, 
+            },
+            id: "$ID"
+        }),
+        }),
+        connectionLinkName: "demodog",
+      });
+    })
+    .then((res) => {
+      console.log("Webhook created:", res);
+      createAlert("Success", "Webhook created successfully");
+      
+      selectedMonitors.forEach((monitor) => {
+        webConfig(monitor.id, monitor.name);
+      });
+      selectedItemsContainer.innerHTML = "";
+      inputField.value = "";
     })
     .catch((err) => {
       console.error("API Call Error:", err);
+      createAlert("Error", "Failed to create webhook. Please try again later");
+    });
+});
+}
+
+function createCustomVariable(apiUrl,domainUrl) {
+  return SDP.invokeUrl({
+    url: `https://${apiUrl}/api/v1/integration/webhooks/configuration/custom-variables`,
+    method: "post",
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json", 
+    },
+    payload: JSON.stringify({
+      is_secret: false,
+      name: "APIURL",
+      value: apiUrl
+    }),
+    connectionLinkName: "demodog"
+  }).then((response) => {
+    console.log("Custom variable created:", response);
+  }).catch((err) => {
+    console.error("API Call Error:", err);
     });
 }
 
 function webConfig(monitorId, monitorName) {
   SDP.invokeUrl({
-    url: `https://api.us5.datadoghq.com/api/v1/monitor/${monitorId}`,
+    url: `https://${apiUrl}/api/v1/monitor/${monitorId}`,
     method: "put",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    connectionLinkName: "datadog",
+    connectionLinkName: "demodog",
     payload: JSON.stringify({
       message: "@webhook-ServiceDeskPlusWebhook",
     }),
@@ -152,17 +193,17 @@ function populateDropdown(data) {
 
 function fetchMonitorMessage(monitorId) {
   return SDP.invokeUrl({
-    url: `https://api.us5.datadoghq.com/api/v1/monitor/${monitorId}`,
+    url: `https://${apiUrl}/api/v1/monitor/${monitorId}`,
     method: "get",
     headers: {
       Accept: "application/json",
     },
-    connectionLinkName: "datadog",
+    connectionLinkName: "demodog",
   })
     .then((res) => res.response.message)
     .catch((err) => {
       console.error("API Call Error:", err);
-      createAlert("Error", "Failed to fetch monitor message.");
+      createAlert("Error", `Failed to connect with the external service: ${err.message}`);
       return null;
     });
 }
