@@ -56,6 +56,14 @@
 	</div>
 	<script src="./widget.js"></script>
 	<script>
+		const centerUrlMap = {
+			"US1": { api: "api.datadoghq.com", domain: "app.datadoghq.com" },
+			"US3": { api: "api.us3.datadoghq.com", domain: "us3.datadoghq.com" },
+			"US5": { api: "api.us5.datadoghq.com", domain: "us5.datadoghq.com" },
+			"EU1": { api: "api.datadoghq.eu", domain: "app.datadoghq.eu" },
+			"AP1": { api: "api.ap1.datadoghq.com", domain: "ap1.datadoghq.com" },
+			"US1-FED": { api: "api.ddog-gov.com", domain: "app.ddog-gov.com" }
+		};
 
 		let apiUrl = '';
 		let domainUrl = '';
@@ -69,17 +77,15 @@
 			SDP.init().then(function (initial_data) {
 				resize();
 
-				SDP.getVariables()
+				SDP.getVariable("request_details_regions")
 					.then(res => {
-						console.log("Variables Response:", res);
-
-						if (res.length >= 2) {
-							apiUrl = res[0].value;
-							domainUrl = res[1].value;
-							console.log("API URL: " + apiUrl);
-							console.log("Domain URL: " + domainUrl);
+						const center = res.value;
+						const urls = centerUrlMap[center];
+						if (urls) {
+							apiUrl = urls.api;
+							domainUrl = urls.domain;
 						} else {
-							throw new Error("Insufficient data from getVariables");
+							throw new Error("Invalid center value");
 						}
 
 						return SDP.invokeUrl({
@@ -88,13 +94,12 @@
 							headers: {
 								"Accept": "application/json"
 							},
-							connectionLinkName: "demodog"
+							connectionLinkName: "datadog"
 						});
 					})
 					.then(res => {
 						if (res && res.response) {
 							const data = res.response;
-							console.log("API Response Data:", data);
 							populateDropdown(data);
 							showPage();
 						} else {
@@ -102,9 +107,10 @@
 						}
 					})
 					.catch(err => {
-						console.error("API Call or Variable Fetch Error:", err);
-						createAlert("Error", `Failed to connect with the external service: ${err.message}`);
+						console.error("Error during the process:", err);
+						createAlert("Error", "Enter the correct region from DataDog");
 					});
+
 			});
 		}
 
@@ -112,10 +118,6 @@
 			return SDP.resizeWidget({
 				width: 888,
 				height: 400
-			}).then(function (response) {
-				console.log(response);
-			}).catch(function (response) {
-				console.log(response);
 			});
 		}
 	</script>

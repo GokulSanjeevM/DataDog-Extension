@@ -26,32 +26,28 @@ function onClickCreateReq(event) {
     return;
   }
 
-  createCustomVariable(apiUrl,domainUrl)
-    .then(() => {
-      return SDP.get({
-  url: "/api/v3/customfunctions",
-  input_data: {
-    list_info: {
-      search_criteria: {
-        field: "function_type",
-        condition: "EQ",
-        value: "callback",
-        children: [
-          {
-            logical_operator: "and",  
-            field: "api_name",
-            condition: "EQ",
-            value: "configure",
-          },
-        ],
+  SDP.get({
+    url: "/api/v3/customfunctions",
+    input_data: {
+      list_info: {
+        search_criteria: {
+          field: "function_type",
+          condition: "EQ",
+          value: "callback",
+          children: [
+            {
+              logical_operator: "and",
+              field: "api_name",
+              condition: "EQ",
+              value: "DataDog",
+            },
+          ],
+        },
       },
     },
-  },
-})
+  })
     .then((response) => {
       const callbackUrl = response.customfunctions[0].callback_url;
-      console.log("Callback URL: " + callbackUrl);
-
       return SDP.invokeUrl({
         url: `https://${apiUrl}/api/v1/integration/webhooks/configuration/webhooks`,
         method: "post",
@@ -62,7 +58,7 @@ function onClickCreateReq(event) {
         payload: JSON.stringify({
           name: "ServiceDeskPlusWebhook",
           url: callbackUrl,
-           payload: JSON.stringify({ 
+          payload: JSON.stringify({
             body: "$EVENT_MSG",
             last_updated: "$LAST_UPDATED",
             event_type: "$EVENT_TYPE",
@@ -70,22 +66,21 @@ function onClickCreateReq(event) {
             date: "$DATE",
             org: {
               id: "$ORG_ID",
-              name: "$ORG_NAME"
+              name: "$ORG_NAME",
             },
             custom_payload: {
-              apiUrl: apiUrl, 
-              domainUrl: domainUrl, 
+              apiUrl: apiUrl,
+              domainUrl: domainUrl,
             },
-            id: "$ID"
+            id: "$ID",
+          }),
         }),
-        }),
-        connectionLinkName: "demodog",
+        connectionLinkName: "datadog",
       });
     })
     .then((res) => {
-      console.log("Webhook created:", res);
       createAlert("Success", "Webhook created successfully");
-      
+
       selectedMonitors.forEach((monitor) => {
         webConfig(monitor.id, monitor.name);
       });
@@ -95,28 +90,6 @@ function onClickCreateReq(event) {
     .catch((err) => {
       console.error("API Call Error:", err);
       createAlert("Error", "Failed to create webhook. Please try again later");
-    });
-});
-}
-
-function createCustomVariable(apiUrl,domainUrl) {
-  return SDP.invokeUrl({
-    url: `https://${apiUrl}/api/v1/integration/webhooks/configuration/custom-variables`,
-    method: "post",
-    headers: {
-      "Accept": "application/json",
-      "Content-Type": "application/json", 
-    },
-    payload: JSON.stringify({
-      is_secret: false,
-      name: "APIURL",
-      value: apiUrl
-    }),
-    connectionLinkName: "demodog"
-  }).then((response) => {
-    console.log("Custom variable created:", response);
-  }).catch((err) => {
-    console.error("API Call Error:", err);
     });
 }
 
@@ -128,7 +101,7 @@ function webConfig(monitorId, monitorName) {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    connectionLinkName: "demodog",
+    connectionLinkName: "datadog",
     payload: JSON.stringify({
       message: "@webhook-ServiceDeskPlusWebhook",
     }),
@@ -198,12 +171,15 @@ function fetchMonitorMessage(monitorId) {
     headers: {
       Accept: "application/json",
     },
-    connectionLinkName: "demodog",
+    connectionLinkName: "datadog",
   })
     .then((res) => res.response.message)
     .catch((err) => {
       console.error("API Call Error:", err);
-      createAlert("Error", `Failed to connect with the external service: ${err.message}`);
+      createAlert(
+        "Error",
+        `Failed to connect with the external service: ${err.message}`
+      );
       return null;
     });
 }
